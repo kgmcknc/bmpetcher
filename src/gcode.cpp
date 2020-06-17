@@ -25,9 +25,10 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
    gcode->x_pix = 0;
    gcode->y_pix = 0;
    gcode->z_pix = image->max_bit_depth_val;
-   gcode->speed = 200.0;
-   gcode->z_mm_step = 0.5;
-   gcode->xy_mm_step = 0.5;
+   gcode->xy_speed = 2400.0;
+   gcode->z_speed = 1000.0;
+   gcode->z_mm_step = 0.2;
+   gcode->xy_mm_step = 0.1;
    gcode->movement_type = 0; // 0 = l/r, 1, f/b
    gcode->x_move_pos = 1;
    gcode->y_move_pos = 1;
@@ -35,18 +36,26 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
    gcode->y_pos = 0.0;
    gcode->z_pos = 0.0;
    gcode->cutting = 0;
-   gcode->max_depth = 5.0;
-   gcode->relief_height = 2.0;
+   gcode->max_depth = 2.0;
+   gcode->relief_height = 0.30;
    gcode->offset_height = gcode->max_depth + gcode->relief_height;
    gcode->current_depth = gcode->max_depth;
    gcode->current_pix_height = image->max_bit_depth_val;
-   gcode->mm_per_pixel = 1.0;
+   gcode->mm_per_pixel = 0.1;
    gcode->mm_per_color = gcode->max_depth/((double) image->max_bit_depth_val);
    gcode->x_max = ((double) image->width)*gcode->mm_per_pixel;
    gcode->y_max = ((double) image->height)*gcode->mm_per_pixel;
    gcode->state = START_IMAGE_PASS;
 
    fprintf(gcode->fp, ";Starting BMP Gcode file\n");
+   fprintf(gcode->fp, ";Image x res %d, y res: %d\n", image->width, image->height);
+   fprintf(gcode->fp, ";Max Cut Depth: %lf\n", gcode->max_depth);
+   fprintf(gcode->fp, ";z_mm_step: %lf\n", gcode->z_mm_step);
+   fprintf(gcode->fp, ";xy_mm_step: %lf\n", gcode->xy_mm_step);
+   fprintf(gcode->fp, ";mm per pix: %lf\n", gcode->mm_per_pixel);
+   fprintf(gcode->fp, ";mm per color; %lf\n", gcode->mm_per_color);
+   fprintf(gcode->fp, ";x max: %lf\n", gcode->x_max);
+   fprintf(gcode->fp, ";y max: %lf\n", gcode->y_max);
 
    while(processing){
       switch(gcode->state){
@@ -67,7 +76,7 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
             //fprintf(gcode->fp, "G01 Z%lf F%lf\n", gcode->offset_height, gcode->speed);
             move_to_relief_height(gcode);
             // set to move to x=0,y=0
-            fprintf(gcode->fp, "G01 X0.0 Y0.0 F%lf\n", gcode->speed);
+            fprintf(gcode->fp, "G01 X0.0 Y0.0 F%lf\n", gcode->xy_speed);
             
             set_new_z_height(gcode, image);
             
@@ -93,7 +102,7 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
             //fprintf(gcode->fp, "G01 Z%lf F%lf\n", gcode->offset_height, gcode->speed);
             move_to_relief_height(gcode);
             // set to move to x=max,y=max
-            fprintf(gcode->fp, "G01 X%lf Y%lf F%lf\n", gcode->x_max, gcode->y_max, gcode->speed);
+            fprintf(gcode->fp, "G01 X%lf Y%lf F%lf\n", gcode->x_max, gcode->y_max, gcode->xy_speed);
 
             set_new_z_height(gcode, image);
 
@@ -134,8 +143,10 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
                gcode->y_move_pos = 1;
             } else {
                // call function for z check
-               move_to_relief_height(gcode);
                set_new_x(gcode, 1);
+               if(gcode->cutting && (check_pixel_cutting(gcode, image) == 0)){
+                  move_to_relief_height(gcode);
+               }
                move_to_position(gcode);
                //gcode->x_pix = gcode->x_pix + 1;
             }
@@ -149,9 +160,11 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
          case MOVE_Y_POS : {
             if(gcode->movement_type == 0){
                // call function for z check
-               move_to_relief_height(gcode);
+               
                set_new_y(gcode, 1);
-               //gcode->y_pix = gcode->y_pix + 1;
+               if(gcode->cutting && (check_pixel_cutting(gcode, image) == 0)){
+                  move_to_relief_height(gcode);
+               }
                move_to_position(gcode);
                if(gcode->y_pix >= image->height){
                   gcode->state = MOVE_XY_MAX;
@@ -208,9 +221,10 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
                }
             } else {
                // call function for z check
-               move_to_relief_height(gcode);
                set_new_x(gcode, 0);
-               //gcode->x_pix = gcode->x_pix - 1;
+               if(gcode->cutting && (check_pixel_cutting(gcode, image) == 0)){
+                  move_to_relief_height(gcode);
+               }
                move_to_position(gcode);
                if(gcode->x_pix <= 0){
                   gcode->state = MOVE_XY_ZERO;
@@ -227,8 +241,10 @@ void bmp_to_gcode(struct image_struct* image, struct gcode_struct* gcode){
          case MOVE_Y_NEG : {
             if(gcode->movement_type == 0){
                // call function for z check
-               move_to_relief_height(gcode);
                set_new_y(gcode, 0);
+               if(gcode->cutting && (check_pixel_cutting(gcode, image) == 0)){
+                  move_to_relief_height(gcode);
+               }
                //gcode->y_pix = gcode->y_pix - 1;
                move_to_position(gcode);
             } else {
@@ -288,7 +304,7 @@ void set_new_z_height(struct gcode_struct* gcode, struct image_struct* image){
 
 void move_to_position(struct gcode_struct* gcode){
 
-   fprintf(gcode->fp, "G01 X%lf Y%lf Z%lf F%lf\n", gcode->x_pos, gcode->y_pos, gcode->z_pos, gcode->speed);
+   fprintf(gcode->fp, "G01 X%lf Y%lf Z%lf F%lf\n", gcode->x_pos, gcode->y_pos, gcode->z_pos, gcode->xy_speed);
    
 }
 
@@ -298,7 +314,7 @@ void update_position(struct gcode_struct* gcode){
 }
 
 void check_pixel_height(struct gcode_struct* gcode, struct image_struct* image){
-   if(image->pix_data[gcode->y_pix][gcode->x_pix][0] < gcode->current_pix_height){
+   if(check_pixel_cutting(gcode, image)){
       if(gcode->cutting == 0){
          move_to_position(gcode);
          move_to_cutting_height(gcode);
@@ -309,13 +325,14 @@ void check_pixel_height(struct gcode_struct* gcode, struct image_struct* image){
          move_to_relief_height(gcode);
       }
    }
-   // if current pix is smaller than current pix height
-      // if cutting == 0, go down to current mm height for cutting
-      // set cutting = 1;
-   // if not
-      // if current pix is larger than or equal to current pix height
-      // if cutting == 1, go up to offset height
-      // set cutting = 0;
+}
+
+uint8_t check_pixel_cutting(struct gcode_struct* gcode, struct image_struct* image){
+   if(image->pix_data[gcode->y_pix][gcode->x_pix][0] < gcode->current_pix_height){
+      return 1;
+   } else {
+      return 0;
+   }
 }
 
 void set_new_x(struct gcode_struct* gcode, uint8_t add_pix){
@@ -339,13 +356,13 @@ void set_new_y(struct gcode_struct* gcode, uint8_t add_pix){
 }
 
 void move_to_cutting_height(struct gcode_struct* gcode){
-   fprintf(gcode->fp, "G01 Z%lf F%lf\n", gcode->current_depth, gcode->speed);
+   fprintf(gcode->fp, "G01 Z%lf F%lf\n", gcode->current_depth, gcode->z_speed);
    gcode->z_pos = gcode->current_depth;
    gcode->cutting = 1;
 }
 
 void move_to_relief_height(struct gcode_struct* gcode){
-   fprintf(gcode->fp, "G01 Z%lf F%lf\n", gcode->offset_height, gcode->speed);
+   fprintf(gcode->fp, "G01 Z%lf F%lf\n", gcode->offset_height, gcode->z_speed);
    gcode->z_pos = gcode->offset_height;
    gcode->cutting = 0;
 }

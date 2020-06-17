@@ -31,6 +31,24 @@ void invert_image(struct image_struct* image_data){
    }
 }
 
+void flip_image_vertical(struct image_struct* image_data){
+   uint16_t temp_data[image_data->height][image_data->width][image_data->colors_per_pixel];
+   for(int y=0;y<image_data->height;y++){
+      for(int x=0;x<image_data->width;x++){
+         for(int c=0;c<image_data->colors_per_pixel;c++){
+            temp_data[y][x][c] = image_data->pix_data[image_data->height - 1 - y][x][c];
+         }
+      }
+   }
+   for(int y=0;y<image_data->height;y++){
+      for(int x=0;x<image_data->width;x++){
+         for(int c=0;c<image_data->colors_per_pixel;c++){
+            image_data->pix_data[y][x][c] = temp_data[y][x][c];
+         }
+      }
+   }
+}
+
 void copy_image(struct image_struct* image_src, struct image_struct* image_dst){
    for(int y=0;y<image_dst->height;y++){
       for(int x=0;x<image_dst->width;x++){

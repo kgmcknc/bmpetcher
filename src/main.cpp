@@ -43,6 +43,8 @@ int main(int argc, char **argv){
 
    invert_image(&input_image);
 
+   flip_image_vertical(&input_image);
+
    strcpy(file_path, "./images/baby_yoda_code.gcode");
    create_gcode_file(&gcode, file_path);
    bmp_to_gcode(&input_image, &gcode);

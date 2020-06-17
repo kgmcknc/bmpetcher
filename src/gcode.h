@@ -16,7 +16,8 @@ struct gcode_struct {
    char line[MAX_GCODE_LINE];
    double mm_per_pixel;
    double mm_per_color;
-   double speed;
+   double xy_speed;
+   double z_speed;
    double z_mm_step;
    double xy_mm_step;
    uint8_t movement_type;
@@ -48,6 +49,7 @@ void update_position(struct gcode_struct* gcode);
 void set_new_x(struct gcode_struct* gcode, uint8_t add);
 void set_new_y(struct gcode_struct* gcode, uint8_t add);
 void check_pixel_height(struct gcode_struct* gcode, struct image_struct* image);
+uint8_t check_pixel_cutting(struct gcode_struct* gcode, struct image_struct* image);
 void set_new_x_height(struct gcode_struct* gcode, struct image_struct* image);
 
 

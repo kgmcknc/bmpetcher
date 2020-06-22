@@ -8,7 +8,7 @@
 #define MAX_GCODE_LINE 256
 
 enum gcode_states {
-   START_IMAGE_PASS, MOVE_XY_ZERO, MOVE_XY_MAX, MOVE_X_POS, MOVE_Y_POS, MOVE_X_NEG, MOVE_Y_NEG, END_IMAGE_PASS
+   START_IMAGE_PASS, MOVE_XY_MIN, SEARCH_X, MOVE_XY_MAX, SEARCH_Y, END_IMAGE_PASS
 };
 
 struct gcode_struct {
@@ -20,7 +20,6 @@ struct gcode_struct {
    double z_speed;
    double z_mm_step;
    double xy_mm_step;
-   uint8_t movement_type;
    uint8_t x_move_pos;
    uint8_t y_move_pos;
    uint8_t cutting;

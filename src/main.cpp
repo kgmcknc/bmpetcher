@@ -15,9 +15,12 @@ struct image_struct input_image;
 struct image_struct output_image;
 struct program_struct program;
 struct gcode_struct gcode;
+void multiply(int num1, int num2);
 
 int main(int argc, char **argv){
    char file_path[200];
+
+   multiply(7,4);
 
    printf("Starting BMP Test\n\n");
    program.done = 0;
@@ -32,7 +35,7 @@ int main(int argc, char **argv){
       }
    }*/
 
-   strcpy(file_path, "./images/baby_yoda.bmp");
+   strcpy(file_path, "./images/test.bmp");
    read_bmp(&input_image, file_path);
    
    //init_bmp_image(&output_image, input_image.width, input_image.height, MAX_BITS_PER_COLOR, MAX_COLORS_PER_PIXEL);
@@ -40,14 +43,14 @@ int main(int argc, char **argv){
    //copy_image(&input_image, &output_image);
 
    greyscale_image(&input_image);
-
+   
    invert_image(&input_image);
 
-   flip_image_vertical(&input_image);
-
+   //flip_image_vertical(&input_image);
+   
    strcpy(file_path, "./images/baby_yoda_code.gcode");
    create_gcode_file(&gcode, file_path);
-   bmp_to_gcode(&input_image, &gcode);
+   //bmp_to_gcode(&input_image, &gcode);
 
    strcpy(file_path, "./images/my_test.bmp");
    write_bmp(&input_image, file_path);
@@ -72,4 +75,18 @@ void get_program_command(char* command){
 
 void set_command(struct program_struct* program){
 
+}
+
+
+void multiply(int num1, int num2){
+   int count;
+   int sum;
+
+   // start our sum at 0
+   sum = 0;
+   for(count=0;count<num1;count++){
+      // add the value of num2 to our sum each time through the loop
+      sum = sum + num2;
+   }
+   printf("value: %d", sum);
 }
